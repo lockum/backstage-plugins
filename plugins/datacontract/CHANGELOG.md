@@ -1,4 +1,4 @@
-# @remunda/backstage-plugin-datacontract
+# @lockum/backstage-plugin-datacontract
 
 ## 0.1.1
 

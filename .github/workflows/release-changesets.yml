@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: "npm-registry"
-      url: "https://www.npmjs.com/package/@remunda"
+      url: "https://www.npmjs.com/org/lockum"
     permissions:
       contents: write
       issues: write

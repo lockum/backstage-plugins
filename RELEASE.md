@@ -48,8 +48,8 @@ This will prompt you to:
 A changeset file looks like this:
 ```markdown
 ---
-"@remunda/backstage-plugin-datacontract": minor
-"@remunda/backstage-plugin-datacontract-backend": patch
+"@lockum/backstage-plugin-datacontract": minor
+"@lockum/backstage-plugin-datacontract-backend": patch
 ---
 
 Add new data visualization component
@@ -77,10 +77,10 @@ You can trigger releases manually via GitHub Actions:
 ## Package Versioning
 
 Packages can have independent versions:
-- `@remunda/backstage-plugin-datacontract` (e.g., v2.1.0)
-- `@remunda/backstage-plugin-datacontract-backend` (e.g., v1.3.2)
+- `@lockum/backstage-plugin-datacontract` (e.g., v2.1.0)
+- `@lockum/backstage-plugin-datacontract-backend` (e.g., v1.3.2)
 
-**Git Tags:** Separate tags per package (e.g., `@remunda/backstage-plugin-datacontract@2.1.0`)
+**Git Tags:** Separate tags per package (e.g., `@lockum/backstage-plugin-datacontract@2.1.0`)
 
 ## Adding New Plugins
 

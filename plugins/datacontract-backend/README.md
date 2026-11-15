@@ -1,72 +1,105 @@
-# Data Contract API Plugin (backend)
+# Backstage Data Contract Catalog Processor (Backend)
 
-Backend module for validating and processing Data Contract API entities in Backstage.
+[![npm version](https://img.shields.io/npm/v/@lockum/backstage-plugin-datacontract-backend.svg)](https://www.npmjs.com/package/@lockum/backstage-plugin-datacontract-backend)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
-This module adds a catalog processor that:
+A production-ready Backstage backend module that registers a catalog processor for validating, ingesting, and enriching **Open Data Contract Standard (ODCS v3.2.0 / v3.x)** and legacy Data Contract API entities in the Backstage catalog.
 
-- Detects API entities with `spec.type: datacontract`
-- Validates the YAML definition against the official Data Contract JSON schema
-- Surfaces validation errors in the Catalog processing output
+Works hand-in-hand with the frontend plugin [`@lockum/backstage-plugin-datacontract`](../datacontract).
 
-Works together with the frontend plugin `@remunda/backstage-plugin-datacontract` which renders the Data Contract definition in the API Docs view.
+---
+
+## Features
+
+- **Multi-Standard Validation**:
+  - Validates **Open Data Contract Standard (ODCS) v3.2.0 / v3.x** using a vendored draft-2019-09 JSON schema.
+  - Validates legacy **Data Contract specifications (0.9.x / 1.x)** using the draft-07 JSON schema.
+  - Fully offline schema validation with zero runtime network roundtrips.
+- **Upstream Edge Case Fix (Bitol #322)**:
+  - Supports properties defining only `physicalType` without `logicalType` (e.g. database-native types like `jsonb`, `timestamptz`).
+- **Templated & Wildcard URI Validation**:
+  - Validates cloud storage URI locations (`s3://`, `gs://`, `abfss://`, `hdfs://`, `file://`) containing `{model}` or `{partition}` variables and `*` wildcards.
+- **Catalog Metadata Enrichment**:
+  - Automatically enriches Backstage entity metadata from the contract:
+    - Adds `datacontract/domain`, `datacontract/data-product`, and `datacontract/version` annotations.
+    - Sanitizes and synchronizes contract `tags` to `entity.metadata.tags`.
+    - Populates `entity.metadata.links` from contract `support` channels.
+- **Clear Error Reporting**:
+  - Emits human-readable validation paths and messages to the catalog processing logs and entity error warnings.
+
+---
 
 ## Installation
 
-1) Install the package in your Backstage backend workspace:
+### 1. Install Backend Package
 
 ```bash
-yarn workspace backend add @remunda/backstage-plugin-datacontract-backend
+# From your Backstage root directory
+yarn workspace backend add @lockum/backstage-plugin-datacontract-backend
 ```
 
-2) Register the catalog module in your backend. If you use the modern backend system:
+### 2. Register in Backstage Backend
 
-```ts
-// packages/backend/src/index.ts
+In `packages/backend/src/index.ts`:
+
+```typescript
 import { createBackend } from '@backstage/backend-defaults';
 
 const backend = createBackend();
 
-// Add the DataContract catalog module
-backend.add(import('@remunda/backstage-plugin-datacontract-backend'));
+// Register the datacontract catalog module
+backend.add(import('@lockum/backstage-plugin-datacontract-backend'));
 
 backend.start();
 ```
 
-This registers a catalog processor that validates Data Contract API entities during ingestion.
+---
 
 ## Usage
 
-Create API entities with `spec.type: datacontract` and either inline YAML or a `$file:` reference in `spec.definition`:
+Define an API entity with `spec.type: datacontract` with inline YAML or a `$file:` reference in `spec.definition`:
 
 ```yaml
 apiVersion: backstage.io/v1alpha1
 kind: API
 metadata:
-	name: orders-data-contract
+  name: orders-datacontract
+  title: Orders Data Contract
+  description: Customer checkout orders contract
+  owner: checkout-team
 spec:
-	type: datacontract
-	definition: $file:./orders-datacontract.yaml
+  type: datacontract
+  definition: $file:./sample-datacontract-odcs-3.2.0.yaml
 ```
 
-Validation results are emitted into the catalog processing logs and UI errors when the schema is not satisfied.
+When Backstage processes this entity:
+1. The definition is loaded and detected as ODCS v3.2.0 or legacy format.
+2. The schema is validated offline using AJV.
+3. If valid, domain, dataProduct, tags, and support channels are enriched onto the entity.
+4. If invalid, detailed error messages appear in the Backstage catalog entity view.
 
-## Configuration
+---
 
-No special configuration is required. The plugin ships with the Data Contract schema and custom URI format support to allow templated/wildcard URIs (for example `s3://.../{model}/*.json`).
-
-## Development
+## Development & Testing
 
 ```bash
-# Run tests
-yarn workspace @remunda/backstage-plugin-datacontract-backend test
+# Run unit tests
+yarn workspace @lockum/backstage-plugin-datacontract-backend test
 
 # Build
-yarn workspace @remunda/backstage-plugin-datacontract-backend build
+yarn workspace @lockum/backstage-plugin-datacontract-backend build
 ```
 
-See the repository root README for monorepo development instructions.
+---
+
+## Links & References
+
+- **GitHub Repository**: [https://github.com/lockum/backstage-plugins](https://github.com/lockum/backstage-plugins)
+- **Issues & Contributions**: [https://github.com/lockum/backstage-plugins/issues](https://github.com/lockum/backstage-plugins/issues)
+- **Frontend Plugin**: [`@lockum/backstage-plugin-datacontract`](../datacontract)
+
+---
 
 ## License
 
-Apache-2.0, see the repository root `LICENSE`.
-
+Licensed under the Apache-2.0 License.

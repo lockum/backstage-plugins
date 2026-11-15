@@ -41,6 +41,26 @@ models:
         classification: public
 `;
 
+	const sampleOdcsYaml = `
+apiVersion: v3.2.0
+kind: DataContract
+id: urn:datacontract:checkout:orders-v3
+name: Orders V3
+version: 1.0.0
+description:
+  purpose: ODCS v3.2.0 contract
+schema:
+  - name: orders
+    description: Orders table
+    properties:
+      - name: order_id
+        logicalType: string
+        primaryKey: true
+        required: true
+        examples:
+          - "ORD-123"
+`;
+
 	describe("renderDataContract", () => {
 		it("renders HTML for valid YAML without throwing", () => {
 			expect(() => renderDataContract(sampleYaml)).not.toThrow();
@@ -49,6 +69,14 @@ models:
 			// Basic sanity checks for main layout
 			expect(html).toContain("Data Contract");
 			expect(html).toContain("Data Model");
+		});
+
+		it("renders HTML for ODCS v3.2.0 YAML without throwing", () => {
+			expect(() => renderDataContract(sampleOdcsYaml)).not.toThrow();
+			const html = renderDataContract(sampleOdcsYaml);
+
+			expect(html).toContain("Orders V3");
+			expect(html).toContain("urn:datacontract:checkout:orders-v3");
 		});
 
 		it("does not return Backstage index.html and contains expected template markers", () => {

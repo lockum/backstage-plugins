@@ -1,22 +1,22 @@
 {
-	"name": "@remunda/backstage-plugins",
+	"name": "@lockum/backstage-plugins",
 	"version": "0.1.0",
 	"private": true,
-	"description": "Mono-repo for Backstage DataContract plugins (frontend and backend).",
+	"description": "Mono-repo for Backstage DataContract plugins (frontend and backend) supporting Open Data Contract Standard (ODCS) v3.2.0.",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/remunda/backstage-plugins.git"
+		"url": "git+https://github.com/lockum/backstage-plugins.git"
 	},
 	"license": "Apache-2.0",
 	"bugs": {
-		"url": "https://github.com/remunda/backstage-plugins/issues"
+		"url": "https://github.com/lockum/backstage-plugins/issues"
 	},
-	"homepage": "https://github.com/remunda/backstage-plugins",
+	"homepage": "https://github.com/lockum/backstage-plugins",
 	"scripts": {
-		"start:be": "yarn workspace @remunda/backstage-plugin-datacontract-backend start",
-		"start:fe": "yarn workspace @remunda/backstage-plugin-datacontract start",
-		"build:be": "yarn workspace @remunda/backstage-plugin-datacontract-backend build",
-		"build:fe": "yarn workspace @remunda/backstage-plugin-datacontract build",
+		"start:be": "yarn workspace @lockum/backstage-plugin-datacontract-backend start",
+		"start:fe": "yarn workspace @lockum/backstage-plugin-datacontract start",
+		"build:be": "yarn workspace @lockum/backstage-plugin-datacontract-backend build",
+		"build:fe": "yarn workspace @lockum/backstage-plugin-datacontract build",
 		"build": "yarn tsc && yarn build:be && yarn build:fe",
 		"start": "concurrently \"yarn start:be\" \"yarn start:fe\"",
 		"local-publish": "yarn build && yarn workspaces foreach --all --no-private exec \"rimraf local-publish && mkdir -p local-publish && npm pack --pack-destination=local-publish\"",

@@ -43,8 +43,8 @@ jobs:
     strategy:
       matrix:
         workspace:
-          - "@remunda/backstage-plugin-datacontract"
-          - "@remunda/backstage-plugin-datacontract-backend"
+          - "@lockum/backstage-plugin-datacontract"
+          - "@lockum/backstage-plugin-datacontract-backend"
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -71,8 +71,8 @@ jobs:
     strategy:
       matrix:
         workspace:
-          - "@remunda/backstage-plugin-datacontract"
-          - "@remunda/backstage-plugin-datacontract-backend"
+          - "@lockum/backstage-plugin-datacontract"
+          - "@lockum/backstage-plugin-datacontract-backend"
     steps:
       - name: Checkout
         uses: actions/checkout@v5

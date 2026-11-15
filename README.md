@@ -1,37 +1,91 @@
-# Backstage Plugins
+# Backstage Plugins by Lockum
 
-This monorepo is host multiple open-source Backstage plugins.
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
-## Data Contract Plugin
+A monorepo for production-ready, enterprise-grade [Backstage](https://backstage.io/) plugins maintained by **Lockum**.
 
-See [Data Contract Plugin Docs](./plugins/datacontract/README.md)
+## Included Plugins
 
-The first published plugin is the **Data Contract API Definition**, featuring a frontend package for rendering Data Contracts and a backend module that validates API entities with `spec.type: datacontract`.
+### 1. Data Contract API Plugin (Frontend) — `@lockum/backstage-plugin-datacontract`
+- **Location**: `plugins/datacontract` — [Documentation](./plugins/datacontract/README.md)
+- **Description**: Renders and visualizes **Open Data Contract Standard (ODCS) v3.2.0 / v3.x** and legacy Data Contract specifications inside Backstage API docs.
+- **Key Features**: Native Backstage Material-UI components, schema & properties explorer with constraints (`PK`, `Required`, `Unique`, `Partitioned`, `CDE`), nested objects and arrays, foreign keys/relationships, servers, SLAs, data quality, team & support channels, roles, and raw YAML viewers with graceful fallbacks.
 
-This plugin streamlines data contract sharing and bridges the gap between data providers and consumers. Built on top of the official [Data Contract specification](https://datacontract.com/) and its ecosystem of tools, it brings enterprise-grade data governance directly into your Backstage catalog.
+### 2. Data Contract Catalog Processor (Backend) — `@lockum/backstage-plugin-datacontract-backend`
+- **Location**: `plugins/datacontract-backend` — [Documentation](./plugins/datacontract-backend/README.md)
+- **Description**: Catalog processor module for Backstage that validates Data Contract API entities (`spec.type: datacontract`) during ingestion and enriches entity metadata (domain, data product, version, tags, support links).
+- **Key Features**: Multi-standard offline validation (ODCS v3.2.0 draft-2019-09 schema + legacy draft-07 schema), Bitol issue #322 support (physical-only types), wildcard/templated cloud URI support (`s3://`, `gs://`, `abfss://`), and human-readable validation errors.
 
-**Why Data Contracts?** They establish clear agreements between data producers and consumers, ensuring data quality, compatibility, and trust across your organization's data landscape.
+---
+
+## Quick Start Example (ODCS v3.2.0)
+
+A comprehensive sample contract is included in this repository:
+- [`sample-datacontract-odcs-3.2.0.yaml`](./sample-datacontract-odcs-3.2.0.yaml)
+
+```yaml
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: orders-datacontract
+  title: Orders Data Contract
+  owner: checkout-team
+spec:
+  type: datacontract
+  definition: $file:./sample-datacontract-odcs-3.2.0.yaml
+```
+
+---
+
+## Repository Structure
+
+```
+├── .changeset/                     # Semantic versioning & changelog management
+├── adr/                            # Architecture Decision Records
+├── docs/                           # Extended architecture and integration guides
+├── plugins/
+│   ├── datacontract/               # Frontend plugin (@lockum/backstage-plugin-datacontract)
+│   └── datacontract-backend/       # Backend catalog module (@lockum/backstage-plugin-datacontract-backend)
+├── sample-datacontract-odcs-3.2.0.yaml  # Complete ODCS v3.2.0 sample contract
+└── package.json                    # Monorepo workspaces configuration
+```
+
+---
 
 ## Development
 
-For setup, local development, build, and test scripts, see [CONTRIBUTING.md](./CONTRIBUTING.md).
+This repository uses **Yarn Berry** and **Biome**.
 
-## Releases
+```bash
+# Install dependencies
+yarn install
 
-Release and versioning are managed with Changesets. See [RELEASE.md](./RELEASE.md) for the full workflow.
+# Run TypeScript typechecks across all packages
+yarn tsc
 
-## Architecture Documentation
+# Run test suites across all packages
+yarn test
 
-Significant architectural decisions are documented as **Architecture Decision Records (ADRs)** in the `adr/` directory. See [ADR README](./adr/README.md) for the format and existing decisions.
+# Lint and format check
+yarn biome check .
+```
 
-## Packages
+---
 
-- Data Contract API Plugin (frontend): `plugins/datacontract` — see its
-  [README](./plugins/datacontract/README.md) for installation and usage.
-- Data Contract API Plugin (backend): `plugins/datacontract-backend` — see its
-  [README](./plugins/datacontract-backend/README.md) for installation and usage.
-- Additional plugins will be added under `plugins/*` as they are developed.
+## Releases & Publishing
 
-## Contributing
+Releases are managed using [Changesets](https://github.com/changesets/changesets). See [RELEASE.md](./RELEASE.md) for publishing workflows.
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md).
+---
+
+## Links & Community
+
+- **GitHub Repository**: [https://github.com/lockum/backstage-plugins](https://github.com/lockum/backstage-plugins)
+- **Issues**: [https://github.com/lockum/backstage-plugins/issues](https://github.com/lockum/backstage-plugins/issues)
+- **Open Data Contract Standard**: [https://bitol.io/](https://bitol.io/)
+
+---
+
+## License
+
+Licensed under the Apache-2.0 License.

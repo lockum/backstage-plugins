@@ -1,6 +1,10 @@
-import { useEffect, useRef } from "react";
-import { renderDataContract } from "../../templates/htmlRenderer";
-import { generateIframeHTML } from "./iframe-template";
+import { CodeSnippet } from "@backstage/core-components";
+import { Box, Typography } from "@material-ui/core";
+import { Alert, AlertTitle } from "@material-ui/lab";
+import { useMemo } from "react";
+import type { OdcsDataContract } from "../../types/odcs";
+import { parseDataContract } from "../../utils/parser";
+import { DataContractView } from "../DataContractView/DataContractView";
 
 export type DataContractDefinitionWidgetProps = {
 	definition: string;
@@ -8,35 +12,44 @@ export type DataContractDefinitionWidgetProps = {
 
 export const DataContractDefinitionWidget = ({
 	definition,
-}: DataContractDefinitionWidgetProps) => {
-	const iframeRef = useRef<HTMLIFrameElement>(null);
-
-	useEffect(() => {
-		if (iframeRef.current) {
-			const htmlContent = renderDataContract(definition);
-			const fullHtmlContent = generateIframeHTML(htmlContent);
-
-			// Create a data URL to avoid CORS issues
-			const dataUrl = `data:text/html;charset=utf-8,${encodeURIComponent(
-				fullHtmlContent,
-			)}`;
-			iframeRef.current.src = dataUrl;
+}: DataContractDefinitionWidgetProps): JSX.Element | null => {
+	const { contract, error } = useMemo<{
+		contract: OdcsDataContract | null;
+		error: string | null;
+	}>(() => {
+		try {
+			if (!definition || !definition.trim()) {
+				return { contract: null, error: "Empty definition provided" };
+			}
+			const parsed = parseDataContract(definition);
+			return { contract: parsed, error: null };
+		} catch (err) {
+			return {
+				contract: null,
+				error: err instanceof Error ? err.message : String(err),
+			};
 		}
 	}, [definition]);
 
-	return (
-		<div style={{ width: "100%", height: "100vh", border: "none" }}>
-			<iframe
-				ref={iframeRef}
-				style={{
-					width: "100%",
-					height: "100%",
-					border: "none",
-				}}
-				title="Data Contract Display"
-				sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
-				role="presentation"
-			/>
-		</div>
-	);
+	if (error || !contract) {
+		return (
+			<Box p={3} width="100%">
+				<Alert severity="error">
+					<AlertTitle>Data Contract Parsing Error</AlertTitle>
+					{error || "Unable to parse data contract definition."}
+				</Alert>
+				<Box mt={2}>
+					<Typography variant="subtitle2" gutterBottom>
+						Raw Definition:
+					</Typography>
+					<CodeSnippet
+						language="yaml"
+						text={definition || "# No definition content"}
+					/>
+				</Box>
+			</Box>
+		);
+	}
+
+	return <DataContractView contract={contract} rawDefinition={definition} />;
 };

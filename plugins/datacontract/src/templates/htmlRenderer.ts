@@ -67,10 +67,63 @@ export function renderDataContract(dataContractYaml: string): string {
 		throw new Error("Invalid data contract definition format");
 	}
 
+	// biome-ignore lint/suspicious/noExplicitAny: template context mapping
+	const raw = json as Record<string, any>;
+	let templateContext = raw;
+
+	// If ODCS contract, provide compatible structure for nunjucks templates if needed
+	if (
+		raw.kind === "DataContract" ||
+		raw.apiVersion ||
+		Array.isArray(raw.schema)
+	) {
+		// biome-ignore lint/suspicious/noExplicitAny: template structure
+		const models: Record<string, any> = {};
+		if (Array.isArray(raw.schema)) {
+			for (const s of raw.schema) {
+				// biome-ignore lint/suspicious/noExplicitAny: template structure
+				const fields: Record<string, any> = {};
+				if (Array.isArray(s.properties)) {
+					for (const p of s.properties) {
+						fields[p.name] = {
+							type: p.logicalType || p.physicalType || "string",
+							description: p.description,
+							required: p.required,
+							primary: p.primaryKey,
+							unique: p.unique,
+							example:
+								Array.isArray(p.examples) && p.examples.length > 0
+									? p.examples[0]
+									: undefined,
+							classification: p.classification,
+						};
+					}
+				}
+				models[s.name] = {
+					description: s.description,
+					fields,
+				};
+			}
+		}
+
+		templateContext = {
+			...raw,
+			info: {
+				title: raw.name || raw.id,
+				version: raw.version,
+				description:
+					typeof raw.description === "string"
+						? raw.description
+						: raw.description?.purpose,
+			},
+			models,
+		};
+	}
+
 	const environment = getOrCreateEnvironment();
 	const local_date = new Date().toLocaleDateString();
 	return environment.render("datacontract.html", {
-		datacontract: json,
+		datacontract: templateContext,
 		formatted_date: local_date,
 		datacontract_cli_version: "n/a",
 	});

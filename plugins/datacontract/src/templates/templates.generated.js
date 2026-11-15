@@ -1178,7 +1178,7 @@ output += "\n    <div class=\"py-2 text-sm\">\n      ";
 if(runtime.memberLookup((runtime.contextOrFrameLookup(context, frame, "field")),"title")) {
 output += "\n      <span>";
 output += runtime.suppressValue(runtime.memberLookup((runtime.contextOrFrameLookup(context, frame, "field")),"title"), env.opts.autoescape);
-output += "</span><br>\n      ";
+output += "</span><br />\n      ";
 ;
 }
 output += "\n      <span class=\"font-mono flex\">";

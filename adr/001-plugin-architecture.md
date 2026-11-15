@@ -9,13 +9,13 @@ We needed to create a Backstage plugin for managing and visualizing Data Contrac
 ## Decision
 We decided to implement a dual-plugin architecture:
 
-1. **Backend Plugin** (`@remunda/backstage-plugin-datacontract-backend`)
+1. **Backend Plugin** (`@lockum/backstage-plugin-datacontract-backend`)
    - Custom catalog processor for resolving `$file:` references in API entities
   - Validation against the official Data Contract specification
    - Injection of raw YAML into entity metadata
    - REST endpoints for DataContract validation
 
-2. **Frontend Plugin** (`@remunda/backstage-plugin-datacontract`)
+2. **Frontend Plugin** (`@lockum/backstage-plugin-datacontract`)
   - Extension of the API Docs definition widget
   - Rich visualization of Data Contract content
    - Integration with Backstage's entity system

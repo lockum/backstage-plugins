@@ -1,162 +1,69 @@
-# Data Contract API Plugin (frontend)
+# Backstage Data Contract Plugin (Frontend)
 
-A Backstage plugin for managing and visualizing [Data Contract](https://datacontract.com/) specifications within your service catalog. This plugin enables teams to document, validate, and share data contracts as API entities in Backstage.
+[![npm version](https://img.shields.io/npm/v/@lockum/backstage-plugin-datacontract.svg)](https://www.npmjs.com/package/@lockum/backstage-plugin-datacontract)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
-## What is a Data Contract?
+A production-ready Backstage frontend plugin for rendering and exploring **Open Data Contract Standard (ODCS v3.2.0 / v3.x)** as well as legacy Data Contract specifications within your Backstage software catalog.
 
-DataContracts are specifications that define the structure, format, and semantics of data interfaces between services. They help teams:
+This plugin bridges the gap between data producers and data consumers by providing native, interactive documentation of data contracts directly inside Backstage API entities.
 
-- Document data schemas and formats
-- Define data quality expectations
-- Specify SLA requirements
-- Establish data governance policies
-- Enable data product management
+## Key Capabilities
 
-This plugin integrates Data Contract specifications into Backstage as API entities, providing a unified view of your data landscape alongside your services and components.
+- **Native Open Data Contract Standard (ODCS) v3.2.0 Support**: Validates and renders ODCS specifications (`apiVersion: v3.2.0`, `kind: DataContract`).
+- **Universal Backward Compatibility**: Seamlessly renders legacy Data Contract specifications (`dataContractSpecification: 0.9.x / 1.x`) via an automated internal adapter.
+- **Rich Interactive UI (Backstage Material-UI)**:
+  - **Header & Overview**: Contract name, version badge, lifecycle status (`active`, `draft`, `deprecated`), domain, data product, tenant, and structured descriptions (`purpose`, `limitations`, `usage`).
+  - **Schema & Properties Explorer**: Detailed tables with logical & physical data types, constraints badges (`PK`, `Required`, `Unique`, `Partitioned`, `CDE`), classifications, examples, and foreign key relationships.
+  - **Nested Object & Array Support**: Recursively renders nested object properties and array items.
+  - **Dedicated Governance Tabs**: Dedicated views for Servers, Service Level Agreements (SLAs), Data Quality rules, Team Members & Support Channels, Access Roles & Security, and Raw YAML.
+  - **Graceful Error Fallback**: If an invalid definition is loaded, displays a clear warning alert and a raw syntax-highlighted YAML viewer without crashing the portal.
 
-## Features
-
-- **API Entity Integration**: Register Data Contract specifications as API entities with `type: datacontract`
-- **Schema Validation**: Automatic validation against the official [Data Contract specification](https://github.com/datacontract/datacontract-specification)
-- **Rich Visualization**: Custom widget for rendering Data Contract details in a user-friendly format
-- **File Reference Support**: Load DataContract definitions from external files using `$file:` references
-- **Catalog Integration**: Full integration with Backstage's catalog system and entity model
-
-![Datacontract in Backstage UI](./img/datacontract-backstage-ui.png)
-
-## How It Works
-
-### API Entity Structure
-
-Data Contracts are represented as Backstage API entities with the following structure:
-
-```yaml
-apiVersion: backstage.io/v1alpha1
-kind: API
-metadata:
-  name: orders-api
-  title: Orders Data Contract
-  description: Customer orders data contract for the e-commerce platform
-  owner: checkout-team
-  tags:
-    - data-contract
-    - orders
-    - ecommerce
-spec:
-  type: datacontract  # This identifies it as a DataContract
-  definition: |
-    dataContractSpecification: 0.9.2
-    id: urn:datacontract:checkout:orders-latest
-    info:
-      title: Orders Latest
-      version: 1.0.0
-      description: |
-        Successful customer orders in the webshop. 
-        All orders since 2020-01-01.
-        Updated daily via automated ETL.
-      owner: checkout-team
-      contact:
-        name: John Doe
-        email: john.doe@example.com
-    servers:
-      prod:
-        type: s3
-        location: s3://my-bucket/orders/{model}/*.json
-        format: json
-    models:
-      orders:
-        type: table
-        description: Successful customer orders
-        fields:
-          order_id:
-            type: string
-            description: Primary key of the orders table
-            required: true
-            primary: true
-            example: "O-123456"
-          customer_id:
-            type: string
-            description: Unique identifier for the customer
-            required: true
-            example: "C-789012"
-          order_total:
-            type: number
-            description: Total amount of the order in USD
-            required: true
-            example: 99.99
-    quality:
-      type: SodaCL
-      specification: |
-        checks for orders:
-          - row_count >= 5
-          - duplicate_count(order_id) = 0
-```
-
-### File References
-
-You can also reference external Data Contract files:
-
-```yaml
-apiVersion: backstage.io/v1alpha1
-kind: API
-metadata:
-  name: orders-api
-  title: Orders Data Contract
-spec:
-  type: datacontract
-  definition: $file:./datacontract.yaml
-```
+---
 
 ## Installation
 
-### Frontend Plugin Installation
+### 1. Install Frontend Package
 
-1. **Install the frontend plugin:**
+From your Backstage repository root:
 
 ```bash
-# From your Backstage root directory
-yarn workspace app add @remunda/backstage-plugin-datacontract
+yarn workspace app add @lockum/backstage-plugin-datacontract
 ```
 
-2. **Add the plugin to your frontend app:**
+### 2. Configure in Backstage App
 
-In `packages/app/src/App.tsx`, import and configure the plugin:
+In your Backstage frontend app (`packages/app/src/App.tsx`):
 
 ```typescript
 import {
   datacontractPlugin,
   withDatacontractApiDocsConfigFactory,
-} from '@remunda/backstage-plugin-datacontract';
-import { 
+} from '@lockum/backstage-plugin-datacontract';
+import {
   defaultDefinitionWidgets,
   apiDocsConfigRef,
 } from '@backstage/plugin-api-docs';
 
-// Add to your app configuration
 const app = createApp({
   apis: [
-    // Add the DataContract API docs config factory
+    // Register the Data Contract definition widget factory with fallback to defaults
     withDatacontractApiDocsConfigFactory(defaultDefinitionWidgets()),
-    // ... other API factories
   ],
   plugins: [
-    // Add the datacontract plugin
     datacontractPlugin,
-    // ... other plugins
   ],
 });
 ```
 
-### Backend Plugin Installation (companion module)
+---
 
-1. **Install the backend plugin:**
+## Companion Backend Processor
+
+To validate Data Contract entities during catalog ingestion, install the backend processor:
 
 ```bash
-# From your Backstage root directory
-yarn workspace backend add @remunda/backstage-plugin-datacontract-backend
+yarn workspace backend add @lockum/backstage-plugin-datacontract-backend
 ```
-
-2. **Add the backend module to your backend:**
 
 In `packages/backend/src/index.ts`:
 
@@ -165,115 +72,144 @@ import { createBackend } from '@backstage/backend-defaults';
 
 const backend = createBackend();
 
-// Add the DataContract catalog module
-backend.add(import('@remunda/backstage-plugin-datacontract-backend'));
+// Register the datacontract catalog module
+backend.add(import('@lockum/backstage-plugin-datacontract-backend'));
 
 backend.start();
 ```
 
-3. **Configure catalog locations (optional):**
+---
 
-In your `app-config.yaml`, you can add locations that contain DataContract API entities:
+## ODCS v3.2.0 Data Contract Example
 
-```yaml
-catalog:
-  locations:
-    - type: file
-      target: ../../examples/datacontracts/*.yaml
-    - type: url
-      target: https://github.com/your-org/datacontracts/blob/main/catalog-info.yaml
-```
-
-## Usage
-
-### Creating DataContract Entities
-
-1. **Create a DataContract specification file** (e.g., `orders-datacontract.yaml`):
-
-```yaml
-dataContractSpecification: 0.9.2
-id: urn:datacontract:checkout:orders-latest
-info:
-  title: Orders Latest
-  version: 1.0.0
-  description: Customer orders data contract
-  owner: checkout-team
-servers:
-  prod:
-    type: bigquery
-    project: my-project
-    dataset: orders_dataset
-models:
-  orders:
-    type: table
-    fields:
-      order_id:
-        type: string
-        required: true
-        primary: true
-      customer_id:
-        type: string
-        required: true
-      order_total:
-        type: number
-        required: true
-```
-
-2. **Create a Backstage catalog entity** (e.g., `catalog-info.yaml`):
+Create a Backstage API entity referencing an ODCS v3.2.0 contract:
 
 ```yaml
 apiVersion: backstage.io/v1alpha1
 kind: API
 metadata:
-  name: orders-data-contract
-  title: Orders Data Contract
-  description: Data contract for customer orders
+  name: checkout-orders-contract
+  title: Checkout Orders Data Contract
+  description: Official customer orders data contract
   owner: checkout-team
   tags:
-    - data-contract
+    - datacontract
+    - checkout
     - orders
 spec:
   type: datacontract
-  definition: $file:./orders-datacontract.yaml
+  definition: |
+    apiVersion: v3.2.0
+    kind: DataContract
+    id: urn:datacontract:checkout:orders
+    name: Checkout Orders Data Contract
+    version: 3.2.0
+    status: active
+    domain: Checkout
+    dataProduct: OrderAnalytics
+    tenant: Global
+    description:
+      purpose: Provides certified real-time customer order events.
+      limitations: Excludes raw payment gateway tokens.
+      usage: Query via Athena on S3 or the PostgreSQL read replica.
+    tags:
+      - orders
+      - checkout
+    servers:
+      - server: production-s3
+        type: s3
+        environment: production
+        location: s3://datacontract-checkout-prod/orders/v3/*.parquet
+        format: parquet
+    schema:
+      - name: orders
+        physicalName: tbl_orders
+        description: Master table containing verified customer orders.
+        relationships:
+          - type: foreign_key
+            from: customer_id
+            to: customers.id
+        properties:
+          - name: order_id
+            businessName: Order Identifier
+            logicalType: string
+            physicalType: varchar(64)
+            required: true
+            primaryKey: true
+            unique: true
+            examples:
+              - "ORD-2026-001"
+          - name: customer_id
+            logicalType: string
+            physicalType: uuid
+            required: true
+            classification: sensitive
+          - name: order_total
+            logicalType: number
+            physicalType: decimal(12,2)
+            required: true
+            criticalDataElement: true
+          - name: raw_metadata
+            physicalType: jsonb
+            description: Column specifying only physicalType
+    slaProperties:
+      - property: latency
+        value: 15
+        unit: minutes
+    quality:
+      - type: rowCount
+        rule: "rowCount > 0"
+        severity: error
+    team:
+      - name: Alice Smith
+        username: asmith
+        role: Lead Data Engineer
+    support:
+      - channel: "#checkout-data"
+        tool: slack
+        url: https://slack.com/archives/checkout-data
+    roles:
+      - role: data-analyst
+        access: read
 ```
 
-3. **Register the entity** by adding its location to your Backstage catalog or including it in your repository's `catalog-info.yaml`.
+### Loading External Definition Files
 
-### Viewing DataContracts
+You can also reference external files using `$file:` in `spec.definition`:
 
-Once registered, DataContract entities will appear in your Backstage catalog:
+```yaml
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: orders-contract
+spec:
+  type: datacontract
+  definition: $file:./sample-datacontract-odcs-3.2.0.yaml
+```
 
-- Browse to **APIs** in the Backstage sidebar
-- Filter by `Type: datacontract` to see all DataContract entities
-- Click on any DataContract to view its detailed specification
-- The custom DataContract widget will render the specification in a user-friendly format
+---
 
-### Example DataContract Entity
+## Development & Testing
 
-See the included [sample-datacontract.yaml](./sample-datacontract.yaml) for a complete example with all supported Data Contract features.
+```bash
+# Run unit and component tests
+yarn workspace @lockum/backstage-plugin-datacontract test
 
-## Configuration
+# Run build
+yarn workspace @lockum/backstage-plugin-datacontract build
+```
 
-### API Docs Integration
+---
 
-The plugin automatically extends Backstage's API documentation system. When viewing an API entity with `spec.type: datacontract`, the Data Contract widget will be displayed instead of the default API documentation.
+## Links & References
 
-### Validation
+- **GitHub Repository**: [https://github.com/lockum/backstage-plugins](https://github.com/lockum/backstage-plugins)
+- **Issues & Contributions**: [https://github.com/lockum/backstage-plugins/issues](https://github.com/lockum/backstage-plugins/issues)
+- **Open Data Contract Standard (ODCS)**: [https://github.com/bitol-io/open-data-contract-standard](https://github.com/bitol-io/open-data-contract-standard)
+- **DataContract Specification**: [https://datacontract.com/](https://datacontract.com/)
 
-The backend processor automatically validates all Data Contract specifications against the official schema. Validation errors will appear in the Backstage catalog and prevent invalid entities from being processed.
-
-## Development
-
-For plugin development instructions, see the main repository [README](../../README.md).
-
-## Support
-
-- **Issues**: [GitHub Issues](https://github.com/remunda/backstage-plugins/issues)
-- **Documentation**: [DataContract Specification](https://github.com/datacontract/datacontract-specification)
-- **Backstage**: [Backstage Documentation](https://backstage.io/docs)
+---
 
 ## License
 
-This plugin is licensed under the same terms as the main repository.
-
-
+Licensed under the Apache-2.0 License.

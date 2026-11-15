@@ -21,8 +21,8 @@ describe("DataContractProcessor", () => {
 		});
 	});
 
-	describe("validateKind", () => {
-		it("should validate a correct datacontract definition", async () => {
+	describe("validateEntityKind", () => {
+		it("should validate a correct legacy datacontract definition", async () => {
 			const entity: Entity = {
 				apiVersion: "backstage.io/v1alpha1",
 				kind: "API",
@@ -45,6 +45,92 @@ describe("DataContractProcessor", () => {
                 type: bigquery
                 project: test-project
                 dataset: test_dataset
+          `,
+				},
+			};
+
+			const result = await processor.validateEntityKind?.(entity);
+			expect(result).toBe(true);
+		});
+
+		it("should validate a valid ODCS v3.2.0 contract", async () => {
+			const entity: Entity = {
+				apiVersion: "backstage.io/v1alpha1",
+				kind: "API",
+				metadata: { name: "orders-odcs-api" },
+				spec: {
+					type: "datacontract",
+					definition: `
+            apiVersion: v3.2.0
+            kind: DataContract
+            id: urn:datacontract:checkout:orders
+            name: Orders Data Contract
+            version: 1.0.0
+            status: active
+            domain: Checkout
+            dataProduct: OrderService
+            description:
+              purpose: Real-time checkout orders data
+              limitations: Only includes completed orders
+            servers:
+              - server: production
+                type: s3
+                environment: production
+                location: s3://datacontract-orders-bucket/data/orders/*.parquet
+                format: parquet
+            schema:
+              - name: orders
+                physicalName: tbl_orders
+                logicalType: object
+                description: Main orders table
+                properties:
+                  - name: order_id
+                    logicalType: string
+                    physicalType: varchar(64)
+                    primaryKey: true
+                    required: true
+                    examples:
+                      - "ORD-12345"
+                  - name: order_total
+                    logicalType: number
+                    physicalType: decimal(10,2)
+                    required: true
+            team:
+              - username: jdoe
+                name: John Doe
+                role: Owner
+            support:
+              - channel: "#checkout-data"
+                tool: slack
+                url: https://slack.com/archives/checkout-data
+          `,
+				},
+			};
+
+			const result = await processor.validateEntityKind?.(entity);
+			expect(result).toBe(true);
+		});
+
+		it("should validate ODCS v3.2.0 property with only physicalType (Bitol #322 upstream fix)", async () => {
+			const entity: Entity = {
+				apiVersion: "backstage.io/v1alpha1",
+				kind: "API",
+				metadata: { name: "physical-only-api" },
+				spec: {
+					type: "datacontract",
+					definition: `
+            apiVersion: v3.2.0
+            kind: DataContract
+            id: urn:datacontract:test:physical-only
+            name: Physical Only Contract
+            version: 1.0.0
+            status: active
+            schema:
+              - name: raw_events
+                properties:
+                  - name: raw_payload
+                    physicalType: jsonb
+                    description: Column with only physicalType specified
           `,
 				},
 			};
@@ -80,7 +166,7 @@ describe("DataContractProcessor", () => {
 			expect(result).toBe(false);
 		});
 
-		it("should throw error for invalid datacontract definition", async () => {
+		it("should throw error for unknown definition format", async () => {
 			const entity: Entity = {
 				apiVersion: "backstage.io/v1alpha1",
 				kind: "API",
@@ -91,7 +177,27 @@ describe("DataContractProcessor", () => {
             openapi: 3.0.0
             info:
               title: Invalid API
-              # Missing required version field
+          `,
+				},
+			};
+
+			await expect(processor.validateEntityKind?.(entity)).rejects.toThrow(
+				"DataContract validation failed",
+			);
+		});
+
+		it("should throw error for invalid ODCS contract failing schema validation", async () => {
+			const entity: Entity = {
+				apiVersion: "backstage.io/v1alpha1",
+				kind: "API",
+				metadata: { name: "test-invalid-odcs" },
+				spec: {
+					type: "datacontract",
+					definition: `
+            apiVersion: v3.2.0
+            kind: DataContract
+            # Missing required id and version
+            name: Incomplete Contract
           `,
 				},
 			};
@@ -145,19 +251,15 @@ describe("DataContractProcessor", () => {
 
 		it("should validate various URI patterns with wildcards and template variables", async () => {
 			const testCases = [
-				// S3 URIs
 				"s3://bucket-name/path/file.json",
 				"s3://bucket-name/path/*.json",
 				"s3://bucket-name/data/{model}/file.parquet",
 				"s3://datacontract-example-orders-latest/data/{model}/*.json",
 				"s3://my-bucket/folder/{year}/{month}/*.csv",
-				// Google Cloud Storage URIs
 				"gs://bucket-name/path/*.json",
 				"gs://my-bucket/data/{model}/*.parquet",
-				// HDFS URIs
 				"hdfs://namenode:9000/path/{model}/*.json",
 				"hdfs://cluster/data/*.parquet",
-				// Generic file URIs
 				"file:///path/to/data/{model}/*.json",
 				"file:///local/data/*.csv",
 			];
@@ -193,7 +295,6 @@ describe("DataContractProcessor", () => {
 
 		it("should validate Azure ABFSS URIs with wildcards and template variables", async () => {
 			const testCases = [
-				// Azure Data Lake Storage URIs
 				"abfss://container@account.dfs.core.windows.net/path/{model}/*.json",
 				"abfss://my-container@storage.dfs.core.windows.net/data/*.csv",
 			];
@@ -225,6 +326,96 @@ describe("DataContractProcessor", () => {
 				const result = await processor.validateEntityKind?.(entity);
 				expect(result).toBe(true);
 			}
+		});
+	});
+
+	describe("postProcessEntity", () => {
+		it("enriches entity metadata from ODCS contract", async () => {
+			const entity: Entity = {
+				apiVersion: "backstage.io/v1alpha1",
+				kind: "API",
+				metadata: { name: "enriched-api" },
+				spec: {
+					type: "datacontract",
+					definition: `
+            apiVersion: v3.2.0
+            kind: DataContract
+            id: urn:datacontract:checkout:orders
+            version: 1.2.0
+            domain: Checkout
+            dataProduct: OrderAnalytics
+            tags:
+              - checkout
+              - pii-compliant
+            support:
+              - channel: "#checkout-support"
+                url: https://slack.com/archives/checkout-support
+          `,
+				},
+			};
+
+			const mockEmit = jest.fn();
+			const mockLocation = { type: "url", target: "http://example.com" };
+			const mockCache = {} as any;
+
+			const result = await processor.postProcessEntity?.(
+				entity,
+				mockLocation,
+				mockEmit,
+				mockCache,
+			);
+
+			expect(result?.metadata.annotations?.["datacontract/domain"]).toBe(
+				"Checkout",
+			);
+			expect(result?.metadata.annotations?.["datacontract/data-product"]).toBe(
+				"OrderAnalytics",
+			);
+			expect(result?.metadata.annotations?.["datacontract/version"]).toBe(
+				"1.2.0",
+			);
+			expect(result?.metadata.tags).toContain("checkout");
+			expect(result?.metadata.tags).toContain("pii-compliant");
+			expect(result?.metadata.links).toEqual([
+				{
+					url: "https://slack.com/archives/checkout-support",
+					title: "#checkout-support",
+					icon: "help",
+				},
+			]);
+			expect(mockEmit).not.toHaveBeenCalled();
+		});
+
+		it("emits error when contract is invalid", async () => {
+			const entity: Entity = {
+				apiVersion: "backstage.io/v1alpha1",
+				kind: "API",
+				metadata: { name: "invalid-api" },
+				spec: {
+					type: "datacontract",
+					definition: `
+            apiVersion: v3.2.0
+            kind: DataContract
+            # Missing id and version
+          `,
+				},
+			};
+
+			const mockEmit = jest.fn();
+			const mockLocation = { type: "url", target: "http://example.com" };
+			const mockCache = {} as any;
+
+			await processor.postProcessEntity?.(
+				entity,
+				mockLocation,
+				mockEmit,
+				mockCache,
+			);
+
+			expect(mockEmit).toHaveBeenCalledTimes(1);
+			expect(mockEmit.mock.calls[0][0].error.message).toContain(
+				"DataContract validation failed",
+			);
 		});
 	});
 });
