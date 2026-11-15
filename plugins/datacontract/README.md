@@ -1,6 +1,5 @@
 # Backstage Data Contract Plugin (Frontend)
 
-[![npm version](https://img.shields.io/npm/v/@lockum/backstage-plugin-datacontract.svg)](https://www.npmjs.com/package/@lockum/backstage-plugin-datacontract)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
 A production-ready Backstage frontend plugin for rendering and exploring **Open Data Contract Standard (ODCS v3.2.0 / v3.x)** as well as legacy Data Contract specifications within your Backstage software catalog.
@@ -20,17 +19,59 @@ This plugin bridges the gap between data producers and data consumers by providi
 
 ---
 
-## Installation
+## Installation & Usage in Your Backstage Instance
 
-### 1. Install Frontend Package
+You can install this plugin into your Backstage app using either **Option 1 (Direct Monorepo Copy)** or **Option 2 (Direct GitHub Dependency)**.
 
-From your Backstage repository root:
+### Option 1: Monorepo / Direct Plugin Copy (Recommended)
+This is the standard approach for custom/forked plugins in Backstage monorepos:
 
+1. **Copy the plugin folder**:
+   Copy this folder `plugins/datacontract` into your Backstage monorepo under `plugins/datacontract`:
+   ```bash
+   cp -r plugins/datacontract /path-to-your-backstage/plugins/datacontract
+   ```
+
+2. **Add to `packages/app/package.json`**:
+   In your Backstage app package (`packages/app/package.json`):
+   ```json
+   "dependencies": {
+     "@lockum/backstage-plugin-datacontract": "^0.2.0"
+   }
+   ```
+
+3. **Install dependencies**:
+   ```bash
+   yarn install
+   ```
+
+---
+
+### Option 2: Direct GitHub Git Dependency via Yarn
+If you prefer referencing this repository directly via Git without copying files:
+
+1. **Add via Yarn workspace Git URL**:
+   ```bash
+   # From your Backstage repository root:
+   yarn workspace app add https://github.com/lockum/backstage-plugins.git#workspace=@lockum/backstage-plugin-datacontract
+   ```
+
+2. **Run install**:
+   ```bash
+   yarn install
+   ```
+
+---
+
+### Option 3: Standard NPM Registry (if published)
+If you publish the package to your npm registry:
 ```bash
 yarn workspace app add @lockum/backstage-plugin-datacontract
 ```
 
-### 2. Configure in Backstage App
+---
+
+## Configuring the Frontend in Backstage
 
 In your Backstage frontend app (`packages/app/src/App.tsx`):
 
@@ -59,11 +100,13 @@ const app = createApp({
 
 ## Companion Backend Processor
 
-To validate Data Contract entities during catalog ingestion, install the backend processor:
+To validate Data Contract entities during catalog ingestion and enrich metadata, install the backend companion module:
 
-```bash
-yarn workspace backend add @lockum/backstage-plugin-datacontract-backend
-```
+- **Option 1 (Monorepo Copy)**: Copy `plugins/datacontract-backend` to your Backstage `plugins/datacontract-backend` and add to `packages/backend/package.json`.
+- **Option 2 (GitHub Git URL)**:
+  ```bash
+  yarn workspace backend add https://github.com/lockum/backstage-plugins.git#workspace=@lockum/backstage-plugin-datacontract-backend
+  ```
 
 In `packages/backend/src/index.ts`:
 
@@ -151,7 +194,7 @@ spec:
             criticalDataElement: true
           - name: raw_metadata
             physicalType: jsonb
-            description: Column specifying only physicalType
+            description: Column specifying only physicalType (Bitol #322)
     slaProperties:
       - property: latency
         value: 15

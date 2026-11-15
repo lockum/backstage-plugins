@@ -1,6 +1,5 @@
 # Backstage Data Contract Catalog Processor (Backend)
 
-[![npm version](https://img.shields.io/npm/v/@lockum/backstage-plugin-datacontract-backend.svg)](https://www.npmjs.com/package/@lockum/backstage-plugin-datacontract-backend)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
 A production-ready Backstage backend module that registers a catalog processor for validating, ingesting, and enriching **Open Data Contract Standard (ODCS v3.2.0 / v3.x)** and legacy Data Contract API entities in the Backstage catalog.
@@ -29,16 +28,59 @@ Works hand-in-hand with the frontend plugin [`@lockum/backstage-plugin-datacontr
 
 ---
 
-## Installation
+## Installation & Usage in Your Backstage Instance
 
-### 1. Install Backend Package
+You can install this backend module into your Backstage app using either **Option 1 (Direct Monorepo Copy)** or **Option 2 (Direct GitHub Dependency)**.
 
+### Option 1: Monorepo / Direct Plugin Copy (Recommended)
+This is the standard approach for custom/forked plugins in Backstage monorepos:
+
+1. **Copy the backend plugin folder**:
+   Copy this folder `plugins/datacontract-backend` into your Backstage monorepo under `plugins/datacontract-backend`:
+   ```bash
+   cp -r plugins/datacontract-backend /path-to-your-backstage/plugins/datacontract-backend
+   ```
+
+2. **Add to `packages/backend/package.json`**:
+   In your Backstage backend package (`packages/backend/package.json`):
+   ```json
+   "dependencies": {
+     "@lockum/backstage-plugin-datacontract-backend": "^0.2.0"
+   }
+   ```
+
+3. **Install dependencies**:
+   ```bash
+   yarn install
+   ```
+
+---
+
+### Option 2: Direct GitHub Git Dependency via Yarn
+If you prefer referencing this repository directly via Git without copying files:
+
+1. **Add via Yarn workspace Git URL**:
+   ```bash
+   # From your Backstage repository root:
+   yarn workspace backend add https://github.com/lockum/backstage-plugins.git#workspace=@lockum/backstage-plugin-datacontract-backend
+   ```
+
+2. **Run install**:
+   ```bash
+   yarn install
+   ```
+
+---
+
+### Option 3: Standard NPM Registry (if published)
+If you publish the package to your npm registry:
 ```bash
-# From your Backstage root directory
 yarn workspace backend add @lockum/backstage-plugin-datacontract-backend
 ```
 
-### 2. Register in Backstage Backend
+---
+
+## Configuring the Backend in Backstage
 
 In `packages/backend/src/index.ts`:
 
@@ -55,7 +97,7 @@ backend.start();
 
 ---
 
-## Usage
+## Catalog Ingestion Usage
 
 Define an API entity with `spec.type: datacontract` with inline YAML or a `$file:` reference in `spec.definition`:
 
@@ -69,6 +111,7 @@ metadata:
   owner: checkout-team
 spec:
   type: datacontract
+  lifecycle: production
   definition: $file:./sample-datacontract-odcs-3.2.0.yaml
 ```
 
