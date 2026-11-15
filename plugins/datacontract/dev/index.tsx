@@ -11,16 +11,123 @@ import {
 	datacontractPlugin,
 } from "../src/plugin";
 
-const sampleDataContract: string = `
+const sampleOdcsContract: string = `
+apiVersion: v3.2.0
+kind: DataContract
+id: urn:datacontract:checkout:orders-v3
+name: Checkout Orders Data Contract
+version: 3.2.0
+status: active
+domain: Checkout
+dataProduct: OrderAnalytics
+tenant: Global
+description:
+  purpose: Real-time customer checkout orders data for analytics and fraud detection.
+  limitations: Excludes raw payment gateway tokens and test transactions.
+  usage: Query via Athena/S3 partitioned parquet files or the PostgreSQL read replica.
+tags:
+  - checkout
+  - orders
+  - e-commerce
+servers:
+  - server: production-s3
+    type: s3
+    environment: production
+    location: s3://datacontract-checkout-prod/orders/v3/*.parquet
+    format: parquet
+    description: Primary production data lake storage.
+  - server: postgres-replica
+    type: postgresql
+    environment: staging
+    host: pg-replica.internal.example.com
+    port: 5432
+    database: checkout_analytics
+    schema: public
+schema:
+  - name: orders
+    physicalName: tbl_orders_v3
+    logicalType: object
+    description: Master table containing verified customer orders.
+    relationships:
+      - type: foreign_key
+        from: customer_id
+        to: customers.id
+    properties:
+      - name: order_id
+        businessName: Order Identifier
+        logicalType: string
+        physicalType: varchar(64)
+        description: Unique primary transaction identifier.
+        required: true
+        primaryKey: true
+        unique: true
+        examples:
+          - "ORD-2026-98124"
+      - name: customer_id
+        logicalType: string
+        physicalType: uuid
+        required: true
+        classification: sensitive
+        relationships:
+          - type: foreign_key
+            to: customers.id
+      - name: order_total
+        businessName: Gross Total
+        logicalType: number
+        physicalType: decimal(12,2)
+        required: true
+        criticalDataElement: true
+        examples:
+          - 129.99
+      - name: raw_metadata
+        businessName: Gateway Payload
+        physicalType: jsonb
+        description: Property with physicalType only (Bitol #322 upstream fix).
+      - name: items
+        logicalType: array
+        description: Line items contained in this order.
+        items:
+          name: order_item
+          logicalType: object
+          properties:
+            - name: sku
+              logicalType: string
+              required: true
+            - name: quantity
+              logicalType: integer
+              required: true
+slaProperties:
+  - property: latency
+    value: 15
+    unit: minutes
+  - property: freshness
+    value: 1
+    unit: hours
+quality:
+  - type: rowCount
+    rule: "rowCount > 0"
+    severity: error
+team:
+  - name: Alice Smith
+    username: asmith
+    role: Lead Data Engineer
+support:
+  - channel: "#checkout-data-support"
+    tool: slack
+    url: https://slack.com/archives/checkout-data-support
+roles:
+  - role: data-analyst
+    description: Read-only query access.
+    access: read
+`;
+
+const sampleLegacyDataContract: string = `
 dataContractSpecification: 0.9.3
 id: urn:datacontract:checkout:orders-latest
 info:
-  title: Orders Latest
+  title: Orders Latest (Legacy)
   version: 1.0.0
-  description: |
-    Successful customer orders in the webshop. 
-    All orders since 2020-01-01. 
-    Orders with their line items are in their current state (no history included).
+  description: Successful customer orders in the webshop (legacy specification).
   owner: Checkout Team
   contact:
     name: John Doe (Data Product Owner)
@@ -30,179 +137,34 @@ servers:
     type: s3
     location: s3://datacontract-example-orders-latest/data/{model}/*.json
     format: json
-    delimiter: new_line
-terms:
-  usage: |
-    Data can be used for reports, analytics and machine learning use cases.
-    Order may be linked and joined by other tables
-  limitations: |
-    Not suitable for real-time use cases.
-    Data may not be used to identify individual customers.
-    Max data processing per day: 10 TiB
-  billing: 5000 USD per month
-  noticePeriod: P3M
 models:
   orders:
-    description: One record per order. Includes cancelled and deleted orders.
     type: table
+    description: Orders table.
     fields:
       order_id:
-        $ref: '#/definitions/order_id'
+        type: string
         required: true
-        unique: true
         primary: true
-      order_timestamp:
-        description: The business timestamp in UTC when the order was successfully registered in the source system and the payment was successful.
-        type: timestamp
-        required: true
-        example: "2024-09-09T08:30:00Z"
-      order_total:
-        description: Total amount the smallest monetary unit (e.g., cents).
-        type: long
-        required: true
-        example: "9999"
+        unique: true
       customer_id:
-        description: Unique identifier for the customer.
-        type: text
-        minLength: 10
-        maxLength: 20
-      customer_email_address:
-        description: The email address, as entered by the customer. The email address was not verified.
-        type: text
-        format: email
+        type: string
         required: true
-        pii: true
-        classification: sensitive
-      processed_timestamp:
-        description: The timestamp when the record was processed by the data platform.
-        type: timestamp
-        required: true
-        config:
-          jsonType: string
-          jsonFormat: date-time
-  line_items:
-    description: A single article that is part of an order.
-    type: table
-    fields:
-      lines_item_id:
-        type: text
-        description: Primary key of the lines_item_id table
-        required: true
-        unique: true
-        primary: true
-      order_id:
-        $ref: '#/definitions/order_id'
-        references: orders.order_id
-      sku:
-        description: The purchased article number
-        $ref: '#/definitions/sku'
-definitions:
-  order_id:
-    domain: checkout
-    name: order_id
-    title: Order ID
-    type: text
-    format: uuid
-    description: An internal ID that identifies an order in the online shop.
-    example: 243c25e5-a081-43a9-aeab-6d5d5b6cb5e2
-    pii: true
-    classification: restricted
-  sku:
-    domain: inventory
-    name: sku
-    title: Stock Keeping Unit
-    type: text
-    pattern: ^[A-Za-z0-9]{8,14}$
-    example: "96385074"
-    description: |
-      A Stock Keeping Unit (SKU) is an internal unique identifier for an article. 
-      It is typically associated with an article's barcode, such as the EAN/GTIN.
-examples:
-  - type: csv # csv, json, yaml, custom
-    model: orders
-    description: An example list of order records.
-    data: | # expressed as string or inline yaml or via "$ref: data.csv"
-      order_id,order_timestamp,order_total,customer_id,customer_email_address,processed_timestamp
-      "1001","2030-09-09T08:30:00Z",2500,"1000000001","mary.taylor82@example.com","2030-09-09T08:31:00Z"
-      "1002","2030-09-08T15:45:00Z",1800,"1000000002","michael.miller83@example.com","2030-09-09T08:31:00Z"
-      "1003","2030-09-07T12:15:00Z",3200,"1000000003","michael.smith5@example.com","2030-09-09T08:31:00Z"
-      "1004","2030-09-06T19:20:00Z",1500,"1000000004","elizabeth.moore80@example.com","2030-09-09T08:31:00Z"
-      "1005","2030-09-05T10:10:00Z",4200,"1000000004","elizabeth.moore80@example.com","2030-09-09T08:31:00Z"
-      "1006","2030-09-04T14:55:00Z",2800,"1000000005","john.davis28@example.com","2030-09-09T08:31:00Z"
-      "1007","2030-09-03T21:05:00Z",1900,"1000000006","linda.brown67@example.com","2030-09-09T08:31:00Z"
-      "1008","2030-09-02T17:40:00Z",3600,"1000000007","patricia.smith40@example.com","2030-09-09T08:31:00Z"
-      "1009","2030-09-01T09:25:00Z",3100,"1000000008","linda.wilson43@example.com","2030-09-09T08:31:00Z"
-      "1010","2030-08-31T22:50:00Z",2700,"1000000009","mary.smith98@example.com","2030-09-09T08:31:00Z"
-  - type: csv
-    model: line_items
-    description: An example list of line items.
-    data: |
-      lines_item_id,order_id,sku
-      "LI-1","1001","5901234123457"
-      "LI-2","1001","4001234567890"
-      "LI-3","1002","5901234123457"
-      "LI-4","1002","2001234567893"
-      "LI-5","1003","4001234567890"
-      "LI-6","1003","5001234567892"
-      "LI-7","1004","5901234123457"
-      "LI-8","1005","2001234567893"
-      "LI-9","1005","5001234567892"
-      "LI-10","1005","6001234567891"
-servicelevels:
-  availability:
-    description: The server is available during support hours
-    percentage: 99.9%
-  retention:
-    description: Data is retained for one year
-    period: P1Y
-    unlimited: false
-  latency:
-    description: Data is available within 25 hours after the order was placed
-    threshold: 25h
-    sourceTimestampField: orders.order_timestamp
-    processedTimestampField: orders.processed_timestamp
-  freshness:
-    description: The age of the youngest row in a table.
-    threshold: 25h
-    timestampField: orders.order_timestamp
-  frequency:
-    description: Data is delivered once a day
-    type: batch # or streaming
-    interval: daily # for batch, either or cron
-    cron: 0 0 * * * # for batch, either or interval
-  support:
-    description: The data is available during typical business hours at headquarters
-    time: 9am to 5pm in EST on business days
-    responseTime: 1h
-  backup:
-    description: Data is backed up once a week, every Sunday at 0:00 UTC.
-    interval: weekly
-    cron: 0 0 * * 0
-    recoveryTime: 24 hours
-    recoveryPoint: 1 week
-quality:
-  type: SodaCL   # data quality check format: SodaCL, montecarlo, custom
-  specification: # expressed as string or inline yaml or via "$ref: checks.yaml"
-    checks for orders:
-      - row_count >= 5
-      - duplicate_count(order_id) = 0
-    checks for line_items:
-      - values in (order_id) must exist in orders (order_id)
-      - row_count >= 5
-    
 `;
 
 createDevApp()
 	.registerPlugin(datacontractPlugin)
 	.addPage({
-		element: <DataContractDefinitionWidget definition={sampleDataContract} />,
-		title: "Widget Test",
+		element: <DataContractDefinitionWidget definition={sampleOdcsContract} />,
+		title: "ODCS v3.2.0 Contract",
 		path: "/backstage-plugin-datacontract",
 	})
 	.addPage({
-		element: <DataContractDefinitionWidget definition={sampleDataContract} />,
-		title: "Widget",
-		path: "/backstage-plugin-datacontract-widget",
+		element: (
+			<DataContractDefinitionWidget definition={sampleLegacyDataContract} />
+		),
+		title: "Legacy Contract (0.9.x)",
+		path: "/backstage-plugin-datacontract-legacy",
 	})
 	.registerApi(
 		createApiFactory({
@@ -225,7 +187,6 @@ createDevApp()
 								),
 							} as ApiDefinitionWidget;
 						}
-						// fallback to the defaults
 						return definitionWidgets.find(
 							(d) => d.type === apiEntity.spec.type,
 						);
